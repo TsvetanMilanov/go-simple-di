@@ -62,16 +62,16 @@ func TestDependencyInjection(t *testing.T) {
 					c := NewContainer()
 					value := 5
 					work := "Work"
-					root := &Dependency{Value: &rootDependency{}}
-					first := &Dependency{Value: &firstLevelDependency{}}
-					second := &Dependency{Value: &secondLevelDependency{}}
+					root := &Dependency{Value: new(rootDependency)}
+					first := &Dependency{Value: new(firstLevelDependency)}
+					second := &Dependency{Value: new(secondLevelDependency)}
 					ptr := &Dependency{Value: &pointerDependency{value: value}}
 					b := &Dependency{Value: &builder{work: work}}
 
 					err := c.Register(root, first, second, ptr, b)
 					So(err, ShouldBeNil)
 
-					res := &rootDependency{}
+					res := new(rootDependency)
 					err = c.Resolve(res)
 
 					So(err, ShouldBeNil)
@@ -108,7 +108,7 @@ func TestDependencyInjection(t *testing.T) {
 					w := "Builder"
 					v := 50
 
-					n := &Dependency{Value: &named{}}
+					n := &Dependency{Value: new(named)}
 					p := &Dependency{Value: &pointerDependency{value: v}, Name: "test1"}
 					b := &Dependency{Value: &builder{work: w}, Name: "test2"}
 					err := c.Register(n, p, b)
@@ -129,7 +129,7 @@ func TestDependencyInjection(t *testing.T) {
 						err := c.Register(&Dependency{Value: c})
 						So(err, ShouldBeNil)
 
-						self := &Container{}
+						self := new(Container)
 						err = c.Resolve(self)
 
 						So(err, ShouldBeNil)
@@ -144,11 +144,11 @@ func TestDependencyInjection(t *testing.T) {
 
 						err := c.Register(
 							&Dependency{Value: c},
-							&Dependency{Value: &selfResolvable{}},
+							&Dependency{Value: new(selfResolvable)},
 						)
 						So(err, ShouldBeNil)
 
-						self := &selfResolvable{}
+						self := new(selfResolvable)
 						err = c.Resolve(self)
 
 						So(err, ShouldBeNil)
@@ -160,26 +160,26 @@ func TestDependencyInjection(t *testing.T) {
 					c := NewContainer()
 					v := 100
 					err := c.Register(
-						&Dependency{Value: &first{}},
-						&Dependency{Value: &second{}},
-						&Dependency{Value: &third{}},
+						&Dependency{Value: new(first)},
+						&Dependency{Value: new(second)},
+						&Dependency{Value: new(third)},
 						&Dependency{Value: &pointerDependency{value: v}},
 					)
 					So(err, ShouldBeNil)
 
-					t := &third{}
+					t := new(third)
 					err = c.Resolve(t)
 					So(err, ShouldBeNil)
 					So(t.S, ShouldNotBeNil)
 
-					f := &first{}
+					f := new(first)
 					err = c.Resolve(f)
 					So(err, ShouldBeNil)
 					So(f.S, ShouldNotBeNil)
 					So(f.P, ShouldNotBeNil)
 					So(f.P.value, ShouldEqual, v)
 
-					s := &second{}
+					s := new(second)
 					err = c.Resolve(s)
 					So(err, ShouldBeNil)
 					So(s.F, ShouldNotBeNil)
@@ -191,7 +191,7 @@ func TestDependencyInjection(t *testing.T) {
 					w := "Builder"
 					v := 50
 
-					n := &Dependency{Value: &named{}}
+					n := &Dependency{Value: new(named)}
 					p := &Dependency{Value: &pointerDependency{value: v}}
 					b := &Dependency{Value: &builder{work: w}, Name: "test2"}
 					err := c.Register(n, p, b)
@@ -206,7 +206,7 @@ func TestDependencyInjection(t *testing.T) {
 					w := "Builder"
 					v := 50
 
-					n := &Dependency{Value: &named{}}
+					n := &Dependency{Value: new(named)}
 					p := &Dependency{Value: &pointerDependency{value: v}, Name: "test1"}
 					b := &Dependency{Value: &builder{work: w}}
 					err := c.Register(n, p, b)
@@ -218,15 +218,15 @@ func TestDependencyInjection(t *testing.T) {
 				})
 				Convey("when not all dependencies are registered.", func() {
 					c := NewContainer()
-					root := &Dependency{Value: &rootDependency{}}
-					first := &Dependency{Value: &firstLevelDependency{}}
-					second := &Dependency{Value: &secondLevelDependency{}}
-					ptr := &Dependency{Value: &pointerDependency{}}
+					root := &Dependency{Value: new(rootDependency)}
+					first := &Dependency{Value: new(firstLevelDependency)}
+					second := &Dependency{Value: new(secondLevelDependency)}
+					ptr := &Dependency{Value: new(pointerDependency)}
 
 					err := c.Register(root, first, second, ptr)
 					So(err, ShouldBeNil)
 
-					res := &rootDependency{}
+					res := new(rootDependency)
 					err = c.Resolve(res)
 
 					So(err, ShouldBeError, "[*di.rootDependency] [*di.firstLevelDependency] [*di.secondLevelDependency] unable to find registered dependency: InterfaceThirdLevel")
@@ -238,12 +238,12 @@ func TestDependencyInjection(t *testing.T) {
 
 					c := NewContainer()
 					err := c.Register(
-						&Dependency{Value: &unexp{}},
-						&Dependency{Value: &pointerDependency{}},
+						&Dependency{Value: new(unexp)},
+						&Dependency{Value: new(pointerDependency)},
 					)
 					So(err, ShouldBeNil)
 
-					r := &unexp{}
+					r := new(unexp)
 					err = c.Resolve(r)
 
 					So(err, ShouldBeError, "[*di.unexp] cannot set field iAmNotExported")
@@ -276,12 +276,12 @@ func TestDependencyInjection(t *testing.T) {
 
 				v := 75
 				err := c.Register(
-					&Dependency{Value: &notag{}},
+					&Dependency{Value: new(notag)},
 					&Dependency{Value: &pointerDependency{value: v}},
 				)
 				So(err, ShouldBeNil)
 
-				res := &notag{}
+				res := new(notag)
 				err = c.Resolve(res)
 
 				So(err, ShouldBeNil)
@@ -363,7 +363,7 @@ func TestDependencyInjection(t *testing.T) {
 			})
 			Convey("Should check for duplicate dependency registration,", func() {
 				c := NewContainer()
-				d := &Dependency{Value: &pointerDependency{}}
+				d := &Dependency{Value: new(pointerDependency)}
 				err := c.Register(d, d)
 
 				So(err, ShouldBeError, "duplicate dependency: -*di.pointerDependency-ptr")
@@ -375,12 +375,12 @@ func TestDependencyInjection(t *testing.T) {
 				c := NewContainer()
 				v := 100
 				w := "ResolveAll"
-				r1Value := &struct {
+				r1Value := new(struct {
 					P *pointerDependency `di:""`
-				}{}
-				r2Value := &struct {
+				})
+				r2Value := new(struct {
 					I worker `di:""`
-				}{}
+				})
 				r1 := &Dependency{Value: r1Value}
 				r2 := &Dependency{Value: r2Value}
 				p := &Dependency{Value: &pointerDependency{value: v}}
@@ -399,7 +399,7 @@ func TestDependencyInjection(t *testing.T) {
 			})
 			Convey("Should return resolve error.", func() {
 				c := NewContainer()
-				d := &Dependency{Value: &firstLevelDependency{}}
+				d := &Dependency{Value: new(firstLevelDependency)}
 				c.Register(d)
 
 				err := c.ResolveAll()

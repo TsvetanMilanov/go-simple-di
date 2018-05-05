@@ -50,7 +50,7 @@ func getTags(field reflect.StructField) (*diTags, error) {
 	}
 
 	tags := strings.Split(tag, ",")
-	res := &diTags{}
+	res := new(diTags)
 	// Check for empty tags.
 	if len(tags) == 1 && len(tags[0]) == 0 {
 		// Return default values.
