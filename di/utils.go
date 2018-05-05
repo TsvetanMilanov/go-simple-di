@@ -43,15 +43,49 @@ func getDependencyKey(t reflect.Type, name string) string {
 	return key
 }
 
-func getTags(field reflect.StructField) *diTags {
+func getTags(field reflect.StructField) (*diTags, error) {
 	tag, ok := field.Tag.Lookup(diTagName)
 	if !ok {
-		return nil
+		return nil, nil
 	}
 
 	tags := strings.Split(tag, ",")
-	res := &diTags{name: tags[0]}
-	return res
+	res := new(diTags)
+	// Check for empty tags.
+	if len(tags) == 1 && len(tags[0]) == 0 {
+		// Return default values.
+		return res, nil
+	}
+
+	for _, tag := range tags {
+		tagContent := strings.Split(tag, "=")
+		if len(tagContent) != 2 {
+			return nil, getInvalidTagErr(tag)
+		}
+
+		k := tagContent[0]
+		v := tagContent[1]
+		if len(v) == 0 {
+			return nil, getInvalidTagErr(tag)
+		}
+
+		switch k {
+		case "name":
+			res.name = v
+		case "new":
+			if v == "true" {
+				res.new = true
+			}
+		default:
+			return nil, getInvalidTagErr(tag)
+		}
+	}
+
+	return res, nil
+}
+
+func getInvalidTagErr(tag string) error {
+	return fmt.Errorf("invalid tag configuration '%s', expecting <key>=<value>", tag)
 }
 
 func isValidValue(t reflect.Type) (isValid bool) {

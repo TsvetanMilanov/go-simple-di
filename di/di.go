@@ -115,7 +115,12 @@ func (c *Container) resolveCore(d *dependencyMetadata) error {
 	d.complete = true
 	for i := 0; i < d.typeElem.NumField(); i++ {
 		field := d.typeElem.Field(i)
-		tags := getTags(field)
+		tags, err := getTags(field)
+		if err != nil {
+			d.complete = false
+			return fmt.Errorf("[%s] %s", d.reflectType.String(), err.Error())
+		}
+
 		if tags == nil {
 			continue
 		}
@@ -131,7 +136,7 @@ func (c *Container) resolveCore(d *dependencyMetadata) error {
 			return fmt.Errorf("[%s] unable to find registered dependency: %s", d.reflectType.String(), field.Name)
 		}
 
-		err := c.resolveCore(fieldDep)
+		err = c.resolveCore(fieldDep)
 		if err != nil {
 			d.complete = false
 			return fmt.Errorf("[%s] %s", d.reflectType.String(), err.Error())
