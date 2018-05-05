@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"strings"
 )
 
 // Dependency is di dependency.
@@ -27,12 +26,12 @@ type Container struct {
 func (c *Container) Register(deps ...*Dependency) error {
 	for _, d := range deps {
 		dType := reflect.TypeOf(d.Value)
-		if !c.isValidValue(dType) {
+		if !isValidValue(dType) {
 			return fmt.Errorf("%s should be pointer or interface", dType.String())
 		}
 
-		meta := c.generateDependencyMetadata(d)
-		key := c.getDependencyKey(meta.reflectType, d.Name)
+		meta := generateDependencyMetadata(d)
+		key := getDependencyKey(meta.reflectType, d.Name)
 		if _, ok := c.dependencies[key]; ok {
 			return fmt.Errorf("duplicate dependency: %s", key)
 		}
@@ -64,7 +63,7 @@ func (c *Container) Resolve(out interface{}) error {
 // ResolveByName sets the out parameter to the resolved by name dependency value.
 func (c *Container) ResolveByName(name string, out interface{}) error {
 	resType := reflect.TypeOf(out)
-	if !c.isValidValue(resType) {
+	if !isValidValue(resType) {
 		return errors.New("the out parameter must be a pointer")
 	}
 
@@ -113,12 +112,12 @@ func (c *Container) resolveCore(d *dependencyMetadata) error {
 
 	for i := 0; i < d.typeElem.NumField(); i++ {
 		field := d.typeElem.Field(i)
-		tags := c.getTags(field)
+		tags := getTags(field)
 		if tags == nil {
 			continue
 		}
 
-		if !c.isValidValue(field.Type) {
+		if !isValidValue(field.Type) || !isFieldExported(field) {
 			return fmt.Errorf("[%s] cannot set field %s", d.reflectType.String(), field.Name)
 		}
 
@@ -139,47 +138,6 @@ func (c *Container) resolveCore(d *dependencyMetadata) error {
 	return nil
 }
 
-func (c *Container) getDependencyKey(t reflect.Type, name string) string {
-	key := fmt.Sprintf("%s-%s-%s",
-		t.PkgPath(),
-		t.String(),
-		t.Kind(),
-	)
-	if len(name) > 0 {
-		return fmt.Sprintf("%s-%s", key, name)
-	}
-
-	return key
-}
-
-func (c *Container) getTags(field reflect.StructField) *diTags {
-	tag, ok := field.Tag.Lookup(diTagName)
-	if !ok {
-		return nil
-	}
-
-	tags := strings.Split(tag, ",")
-	res := &diTags{}
-	if len(tags) == 0 {
-		return res
-	}
-
-	res.name = tags[0]
-
-	return res
-}
-
-func (c *Container) isValidValue(t reflect.Type) (isValid bool) {
-	defer func() {
-		if r := recover(); r != nil {
-			isValid = false
-		}
-	}()
-
-	kind := t.Kind()
-	return kind == reflect.Ptr || kind == reflect.Interface
-}
-
 func (c *Container) findDependency(t reflect.Type, name string) *dependencyMetadata {
 	if t.Kind() == reflect.Interface {
 		for _, v := range c.dependencies {
@@ -194,41 +152,9 @@ func (c *Container) findDependency(t reflect.Type, name string) *dependencyMetad
 			}
 		}
 	} else {
-		key := c.getDependencyKey(t, name)
+		key := getDependencyKey(t, name)
 		return c.dependencies[key]
 	}
 
 	return nil
-}
-
-func (c *Container) generateDependencyMetadata(d *Dependency) *dependencyMetadata {
-	vType := reflect.TypeOf(d.Value)
-	value := reflect.ValueOf(d.Value)
-
-	return &dependencyMetadata{
-		Dependency:   d,
-		reflectType:  vType,
-		reflectValue: value,
-		typeElem:     vType.Elem(),
-		valueElem:    value.Elem(),
-		implements:   make(map[string]bool),
-	}
-}
-
-const (
-	diTagName = "di"
-)
-
-type diTags struct {
-	name string
-}
-
-type dependencyMetadata struct {
-	*Dependency
-	reflectType  reflect.Type
-	reflectValue reflect.Value
-	complete     bool
-	typeElem     reflect.Type
-	valueElem    reflect.Value
-	implements   map[string]bool
 }
