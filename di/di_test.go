@@ -39,6 +39,19 @@ type named struct {
 	Interface worker             `di:"test2"`
 }
 
+type first struct {
+	S *second            `di:""`
+	P *pointerDependency `di:""`
+}
+
+type second struct {
+	F *first `di:""`
+}
+
+type third struct {
+	S *second `di:""`
+}
+
 func (b *builder) Work() string { return b.work }
 
 func TestDependencyInjection(t *testing.T) {
@@ -142,6 +155,34 @@ func TestDependencyInjection(t *testing.T) {
 						So(c, ShouldResemble, self.C)
 						So(*c, ShouldResemble, *self.C)
 					})
+				})
+				Convey("circular dependencies.", func() {
+					c := NewContainer()
+					v := 100
+					err := c.Register(
+						&Dependency{Value: &first{}},
+						&Dependency{Value: &second{}},
+						&Dependency{Value: &third{}},
+						&Dependency{Value: &pointerDependency{value: v}},
+					)
+					So(err, ShouldBeNil)
+
+					t := &third{}
+					err = c.Resolve(t)
+					So(err, ShouldBeNil)
+					So(t.S, ShouldNotBeNil)
+
+					f := &first{}
+					err = c.Resolve(f)
+					So(err, ShouldBeNil)
+					So(f.S, ShouldNotBeNil)
+					So(f.P, ShouldNotBeNil)
+					So(f.P.value, ShouldEqual, v)
+
+					s := &second{}
+					err = c.Resolve(s)
+					So(err, ShouldBeNil)
+					So(s.F, ShouldNotBeNil)
 				})
 			})
 			Convey("Should fail to resolve", func() {
