@@ -35,8 +35,8 @@ type builder struct {
 }
 
 type named struct {
-	Struct    *pointerDependency `di:"test1"`
-	Interface worker             `di:"test2"`
+	Struct    *pointerDependency `di:"name=test1"`
+	Interface worker             `di:"name=test2"`
 }
 
 type first struct {
@@ -248,6 +248,22 @@ func TestDependencyInjection(t *testing.T) {
 
 					So(err, ShouldBeError, "[*di.unexp] cannot set field iAmNotExported")
 					So(r.iAmNotExported, ShouldBeNil)
+				})
+				Convey("when the tag is invalid.", func() {
+					c := NewContainer()
+					type invalidTag struct {
+						P *pointerDependency `di:"name="`
+					}
+					err := c.Register(
+						&Dependency{Value: new(invalidTag)},
+						&Dependency{Value: new(pointerDependency)},
+					)
+					So(err, ShouldBeNil)
+
+					r := new(invalidTag)
+					err = c.Resolve(r)
+
+					So(err, ShouldBeError, "[*di.invalidTag] "+getInvalidTagErr("name=").Error())
 				})
 			})
 			Convey("Should NOT resolve fields without tags", func() {
