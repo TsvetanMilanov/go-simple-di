@@ -41,7 +41,7 @@ type named struct {
 
 func (b *builder) Work() string { return b.work }
 
-func TestDI(t *testing.T) {
+func TestDependencyInjection(t *testing.T) {
 	Convey("Container", t, func() {
 		Convey("Resolve", func() {
 			Convey("Should resolve", func() {
@@ -109,8 +109,42 @@ func TestDI(t *testing.T) {
 					So(res.Struct.value, ShouldEqual, v)
 					So(res.Interface.Work(), ShouldEqual, w)
 				})
+				Convey("self if it's registered to its dependencies", func() {
+					Convey("direct resolve", func() {
+						c := NewContainer()
+
+						err := c.Register(&Dependency{Value: c})
+						So(err, ShouldBeNil)
+
+						self := &Container{}
+						err = c.Resolve(self)
+
+						So(err, ShouldBeNil)
+						So(c, ShouldResemble, self)
+						So(*c, ShouldResemble, *self)
+					})
+					Convey("resolve in struct property.", func() {
+						c := NewContainer()
+						type selfResolvable struct {
+							C *Container `di:""`
+						}
+
+						err := c.Register(
+							&Dependency{Value: c},
+							&Dependency{Value: &selfResolvable{}},
+						)
+						So(err, ShouldBeNil)
+
+						self := &selfResolvable{}
+						err = c.Resolve(self)
+
+						So(err, ShouldBeNil)
+						So(c, ShouldResemble, self.C)
+						So(*c, ShouldResemble, *self.C)
+					})
+				})
 			})
-			Convey("Should NOT resolve", func() {
+			Convey("Should fail to resolve", func() {
 				Convey("unnamed dependencies for named structs.", func() {
 					c := NewContainer()
 					w := "Builder"
@@ -156,6 +190,48 @@ func TestDI(t *testing.T) {
 
 					So(err, ShouldBeError, "[*di.rootDependency] [*di.firstLevelDependency] [*di.secondLevelDependency] unable to find registered dependency: InterfaceThirdLevel")
 				})
+				Convey("unexported properties.", func() {
+					type unexp struct {
+						iAmNotExported *pointerDependency `di:""`
+					}
+
+					c := NewContainer()
+					err := c.Register(
+						&Dependency{Value: &unexp{}},
+						&Dependency{Value: &pointerDependency{}},
+					)
+					So(err, ShouldBeNil)
+
+					r := &unexp{}
+					err = c.Resolve(r)
+
+					So(err, ShouldBeError, "[*di.unexp] cannot set field iAmNotExported")
+					So(r.iAmNotExported, ShouldBeNil)
+				})
+			})
+			Convey("Should NOT resolve fields without tags", func() {
+				c := NewContainer()
+				type notag struct {
+					ResolveMe     *pointerDependency `di:""`
+					DontResolveMe *pointerDependency
+					OtherTags     *pointerDependency `json:"otherTags"`
+				}
+
+				v := 75
+				err := c.Register(
+					&Dependency{Value: &notag{}},
+					&Dependency{Value: &pointerDependency{value: v}},
+				)
+				So(err, ShouldBeNil)
+
+				res := &notag{}
+				err = c.Resolve(res)
+
+				So(err, ShouldBeNil)
+				So(res.DontResolveMe, ShouldBeNil)
+				So(res.OtherTags, ShouldBeNil)
+				So(res.ResolveMe, ShouldNotBeNil)
+				So(res.ResolveMe.value, ShouldEqual, v)
 			})
 			Convey("Should validate the out parameter to be pointer for", func() {
 				Convey("structs.", func() {
@@ -228,6 +304,13 @@ func TestDI(t *testing.T) {
 
 				So(err, ShouldBeError, "di.pointerDependency should be pointer or interface")
 			})
+			Convey("Should check for duplicate dependency registration,", func() {
+				c := NewContainer()
+				d := &Dependency{Value: &pointerDependency{}}
+				err := c.Register(d, d)
+
+				So(err, ShouldBeError, "duplicate dependency: -*di.pointerDependency-ptr")
+			})
 		})
 
 		Convey("ResolveAll", func() {
@@ -256,6 +339,15 @@ func TestDI(t *testing.T) {
 				So(r1Value.P.value, ShouldEqual, v)
 				So(r2Value.I, ShouldNotBeNil)
 				So(r2Value.I.Work(), ShouldEqual, w)
+			})
+			Convey("Should return resolve error.", func() {
+				c := NewContainer()
+				d := &Dependency{Value: &firstLevelDependency{}}
+				c.Register(d)
+
+				err := c.ResolveAll()
+
+				So(err, ShouldBeError, "[*di.firstLevelDependency] unable to find registered dependency: Second")
 			})
 		})
 	})
