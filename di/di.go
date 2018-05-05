@@ -110,6 +110,9 @@ func (c *Container) resolveCore(d *dependencyMetadata) error {
 		return nil
 	}
 
+	// Mark as complete to avoid circular dependency recursion.
+	// This requires each return with error to set the complete property to false.
+	d.complete = true
 	for i := 0; i < d.typeElem.NumField(); i++ {
 		field := d.typeElem.Field(i)
 		tags := getTags(field)
@@ -118,23 +121,25 @@ func (c *Container) resolveCore(d *dependencyMetadata) error {
 		}
 
 		if !isValidValue(field.Type) || !isFieldExported(field) {
+			d.complete = false
 			return fmt.Errorf("[%s] cannot set field %s", d.reflectType.String(), field.Name)
 		}
 
 		fieldDep := c.findDependency(field.Type, tags.name)
 		if fieldDep == nil {
+			d.complete = false
 			return fmt.Errorf("[%s] unable to find registered dependency: %s", d.reflectType.String(), field.Name)
 		}
 
 		err := c.resolveCore(fieldDep)
 		if err != nil {
+			d.complete = false
 			return fmt.Errorf("[%s] %s", d.reflectType.String(), err.Error())
 		}
 
 		d.valueElem.Field(i).Set(fieldDep.reflectValue)
 	}
 
-	d.complete = true
 	return nil
 }
 
