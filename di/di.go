@@ -72,11 +72,21 @@ func (c *Container) ResolveByName(name string, out interface{}) error {
 func (c *Container) ResolveNew(out interface{}) error {
 	return c.resolveWithFinder(func(isInterface bool) *dependencyMetadata {
 		dep := c.findDependency(out, "")
-		if dep == nil && isInterface {
-			return nil
+		var resTypeElem reflect.Type
+		if dep == nil {
+			if isInterface {
+				// No dependency which implements the interface was registered.
+				return nil
+			}
+
+			// The out is struct which is not registered in the container.
+			resTypeElem = reflect.TypeOf(out).Elem()
+		} else {
+			// The out is struct which is registered in the container.
+			resTypeElem = dep.typeElem
 		}
 
-		return generateDependencyMetadata(&Dependency{Value: reflect.New(dep.typeElem).Interface()})
+		return generateDependencyMetadata(&Dependency{Value: reflect.New(resTypeElem).Interface()})
 	}, out)
 }
 
