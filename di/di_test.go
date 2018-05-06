@@ -354,6 +354,92 @@ func TestDependencyInjection(t *testing.T) {
 			})
 		})
 
+		Convey("ResolveNew", func() {
+			Convey("Should always resolve new instance", func() {
+				Convey("for structs.", func() {
+					c := NewContainer()
+					v := 100
+					initial := &pointerDependency{value: v}
+					err := c.Register(&Dependency{Value: initial})
+					So(err, ShouldBeNil)
+
+					prev := initial
+					for i := 0; i < 5; i++ {
+						n := new(pointerDependency)
+						err = c.ResolveNew(n)
+
+						So(err, ShouldBeNil)
+						So(*n, ShouldNotResemble, *initial)
+						So(*n, ShouldNotResemble, *prev)
+						n.value = i + 500
+						prev = n
+
+						old := new(pointerDependency)
+						err = c.Resolve(old)
+
+						So(err, ShouldBeNil)
+						So(*old, ShouldResemble, *initial)
+					}
+				})
+				Convey("for interfaces.", func() {
+					c := NewContainer()
+					w := "Testing"
+					initial := &builder{work: w}
+					err := c.Register(&Dependency{Value: initial})
+					So(err, ShouldBeNil)
+
+					prev := initial
+					for i := 0; i < 5; i++ {
+						n := new(worker)
+						err = c.ResolveNew(n)
+						nValue := *n
+
+						So(err, ShouldBeNil)
+						So(nValue.Work(), ShouldNotEqual, initial.Work())
+						So(nValue.Work(), ShouldNotEqual, prev.Work())
+						(*n).(*builder).work = "Testing: " + string(i)
+						prev = (*n).(*builder)
+
+						old := new(worker)
+						err = c.Resolve(old)
+						oldValue := *old
+
+						So(err, ShouldBeNil)
+						So(oldValue.Work(), ShouldEqual, initial.Work())
+					}
+				})
+				Convey("for structs not registered in the container.", func() {
+					c := NewContainer()
+					v := 20
+					w := "New"
+					err := c.Register(
+						&Dependency{Value: &pointerDependency{value: v}},
+						&Dependency{Value: &builder{work: w}},
+					)
+					So(err, ShouldBeNil)
+
+					res := new(secondLevelDependency)
+					err = c.ResolveNew(res)
+
+					So(err, ShouldBeNil)
+					So(res, ShouldNotBeNil)
+					So(res.InterfaceThirdLevel, ShouldNotBeNil)
+					So(res.PointerThirdLevel, ShouldNotBeNil)
+					So(res.InterfaceThirdLevel.Work(), ShouldEqual, w)
+					So(res.PointerThirdLevel.value, ShouldEqual, v)
+				})
+			})
+			Convey("Should fail to resolve not registered struct from provided interface.", func() {
+				c := NewContainer()
+				res := new(worker)
+
+				err := c.ResolveNew(res)
+
+				So(err, ShouldBeError, "unable to find registered dependency: *di.worker")
+				So(*res, ShouldBeNil)
+			})
+		})
+
 		Convey("Register", func() {
 			Convey("Should validate the dependency value to be pointer.", func() {
 				c := NewContainer()

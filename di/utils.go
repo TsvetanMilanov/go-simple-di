@@ -72,10 +72,6 @@ func getTags(field reflect.StructField) (*diTags, error) {
 		switch k {
 		case "name":
 			res.name = v
-		case "new":
-			if v == "true" {
-				res.new = true
-			}
 		default:
 			return nil, getInvalidTagErr(tag)
 		}
@@ -97,4 +93,8 @@ func isValidValue(t reflect.Type) (isValid bool) {
 
 	kind := t.Kind()
 	return kind == reflect.Ptr || kind == reflect.Interface
+}
+
+func isPointerTypePointerToInterface(t reflect.Type) bool {
+	return t.Elem().Kind() == reflect.Interface
 }
