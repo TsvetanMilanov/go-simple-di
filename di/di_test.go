@@ -408,6 +408,35 @@ func TestDependencyInjection(t *testing.T) {
 						So(oldValue.Work(), ShouldEqual, initial.Work())
 					}
 				})
+				Convey("for structs not registered in the container.", func() {
+					c := NewContainer()
+					v := 20
+					w := "New"
+					err := c.Register(
+						&Dependency{Value: &pointerDependency{value: v}},
+						&Dependency{Value: &builder{work: w}},
+					)
+					So(err, ShouldBeNil)
+
+					res := new(secondLevelDependency)
+					err = c.ResolveNew(res)
+
+					So(err, ShouldBeNil)
+					So(res, ShouldNotBeNil)
+					So(res.InterfaceThirdLevel, ShouldNotBeNil)
+					So(res.PointerThirdLevel, ShouldNotBeNil)
+					So(res.InterfaceThirdLevel.Work(), ShouldEqual, w)
+					So(res.PointerThirdLevel.value, ShouldEqual, v)
+				})
+			})
+			Convey("Should fail to resolve not registered struct from provided interface.", func() {
+				c := NewContainer()
+				res := new(worker)
+
+				err := c.ResolveNew(res)
+
+				So(err, ShouldBeError, "unable to find registered dependency: *di.worker")
+				So(*res, ShouldBeNil)
 			})
 		})
 
