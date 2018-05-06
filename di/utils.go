@@ -72,10 +72,6 @@ func getTags(field reflect.StructField) (*diTags, error) {
 		switch k {
 		case "name":
 			res.name = v
-		case "new":
-			if v == "true" {
-				res.new = true
-			}
 		default:
 			return nil, getInvalidTagErr(tag)
 		}

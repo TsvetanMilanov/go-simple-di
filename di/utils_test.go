@@ -62,30 +62,6 @@ func TestUtils(t *testing.T) {
 						}{},
 						expected: diTags{name: "test"},
 					},
-					"parsing only new with value true.": {
-						input: struct {
-							F int `di:"new=true"`
-						}{},
-						expected: diTags{new: true},
-					},
-					"parsing only new with value false.": {
-						input: struct {
-							F int `di:"new=false"`
-						}{},
-						expected: diTags{new: false},
-					},
-					"parsing only new with invalid value.": {
-						input: struct {
-							F int `di:"new=false"`
-						}{},
-						expected: diTags{new: false},
-					},
-					"parsing all possible values.": {
-						input: struct {
-							F int `di:"new=true,name=test"`
-						}{},
-						expected: diTags{new: true, name: "test"},
-					},
 				}
 
 				for testName, tc := range testCases {

@@ -4,7 +4,6 @@ import "reflect"
 
 type diTags struct {
 	name string
-	new  bool
 }
 
 type dependencyMetadata struct {
