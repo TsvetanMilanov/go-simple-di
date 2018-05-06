@@ -36,9 +36,9 @@ func (b *builder) Work() string {
 func Example() {
 	// create the dependencies.
 	r := &root{}
-	nam := &named{name: "named"}
+	nam := &named{name: "Pesho"}
 	nes := &nested{}
-	b := &builder{work: "Build"}
+	b := &builder{work: "quick start"}
 
 	// create the di container and add all dependencies to it.
 	c := di.NewContainer()
@@ -59,6 +59,9 @@ func Example() {
 	}
 
 	// use the resolved dependencies
-	fmt.Println("Worker: ", r.Nested.W.Work())
-	fmt.Println("Named: ", r.Named.name)
+	fmt.Println("Worker:", r.Nested.W.Work())
+	fmt.Println("Name:", r.Named.name)
+	// Output:
+	// Worker: quick start
+	// Name: Pesho
 }
