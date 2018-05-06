@@ -62,27 +62,32 @@ func (c *Container) Resolve(out interface{}) error {
 
 // ResolveByName sets the out parameter to the resolved by name dependency value.
 func (c *Container) ResolveByName(name string, out interface{}) error {
+	return c.resolveWithFinder(func(isInterface bool) *dependencyMetadata {
+		return c.findDependency(out, name)
+	}, out)
+}
+
+// ResolveNew returns new instance of the provided type.
+// The dependencies of the instance marked for resolving will not be new.
+func (c *Container) ResolveNew(out interface{}) error {
+	return c.resolveWithFinder(func(isInterface bool) *dependencyMetadata {
+		dep := c.findDependency(out, "")
+		if dep == nil && isInterface {
+			return nil
+		}
+
+		return generateDependencyMetadata(&Dependency{Value: reflect.New(dep.typeElem).Interface()})
+	}, out)
+}
+
+func (c *Container) resolveWithFinder(finder func(isInterface bool) *dependencyMetadata, out interface{}) error {
 	resType := reflect.TypeOf(out)
 	if !isValidValue(resType) {
 		return errors.New("the out parameter must be a pointer")
 	}
 
-	isInterface := resType.Elem().Kind() == reflect.Interface
-	var dep *dependencyMetadata
-	if isInterface {
-		// Currently (Go 1.9.4) the reflect.TypeOf will return nil
-		// the it is called with empty interface value -> https://golang.org/pkg/reflect/#TypeOf
-		// For example:
-		//   var a someInterface
-		//   fmt.Println(reflect.TypeOf(a))
-		// That's why we need to work with pointer to interface in this method.
-		// The result reflect.Type of the Elem() method executed on pointer to interface gives
-		// the correct type and we can work with it.
-		dep = c.findDependency(resType.Elem(), name)
-	} else {
-		dep = c.findDependency(resType, name)
-	}
-
+	isInterface := isPointerTypePointerToInterface(resType)
+	dep := finder(isInterface)
 	if dep == nil {
 		return fmt.Errorf("unable to find registered dependency: %s", resType.String())
 	}
@@ -103,6 +108,26 @@ func (c *Container) ResolveByName(name string, out interface{}) error {
 
 	reflect.ValueOf(out).Elem().Set(resValue)
 	return nil
+}
+
+func (c *Container) findDependency(out interface{}, name string) *dependencyMetadata {
+	outType := reflect.TypeOf(out)
+	var dep *dependencyMetadata
+	if isPointerTypePointerToInterface(outType) {
+		// Currently (Go 1.9.4) the reflect.TypeOf will return nil
+		// the it is called with empty interface value -> https://golang.org/pkg/reflect/#TypeOf
+		// For example:
+		//   var a someInterface
+		//   fmt.Println(reflect.TypeOf(a))
+		// That's why we need to work with pointer to interface in this method.
+		// The result reflect.Type of the Elem() method executed on pointer to interface gives
+		// the correct type and we can work with it.
+		dep = c.findDependencyCore(outType.Elem(), name)
+	} else {
+		dep = c.findDependencyCore(outType, name)
+	}
+
+	return dep
 }
 
 func (c *Container) resolveCore(d *dependencyMetadata) error {
@@ -130,7 +155,7 @@ func (c *Container) resolveCore(d *dependencyMetadata) error {
 			return fmt.Errorf("[%s] cannot set field %s", d.reflectType.String(), field.Name)
 		}
 
-		fieldDep := c.findDependency(field.Type, tags.name)
+		fieldDep := c.findDependencyCore(field.Type, tags.name)
 		if fieldDep == nil {
 			d.complete = false
 			return fmt.Errorf("[%s] unable to find registered dependency: %s", d.reflectType.String(), field.Name)
@@ -148,7 +173,7 @@ func (c *Container) resolveCore(d *dependencyMetadata) error {
 	return nil
 }
 
-func (c *Container) findDependency(t reflect.Type, name string) *dependencyMetadata {
+func (c *Container) findDependencyCore(t reflect.Type, name string) *dependencyMetadata {
 	if t.Kind() == reflect.Interface {
 		for _, v := range c.dependencies {
 			if len(name) > 0 && v.Name != name {

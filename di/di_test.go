@@ -354,6 +354,63 @@ func TestDependencyInjection(t *testing.T) {
 			})
 		})
 
+		Convey("ResolveNew", func() {
+			Convey("Should always resolve new instance", func() {
+				Convey("for structs.", func() {
+					c := NewContainer()
+					v := 100
+					initial := &pointerDependency{value: v}
+					err := c.Register(&Dependency{Value: initial})
+					So(err, ShouldBeNil)
+
+					prev := initial
+					for i := 0; i < 5; i++ {
+						n := new(pointerDependency)
+						err = c.ResolveNew(n)
+
+						So(err, ShouldBeNil)
+						So(*n, ShouldNotResemble, *initial)
+						So(*n, ShouldNotResemble, *prev)
+						n.value = i + 500
+						prev = n
+
+						old := new(pointerDependency)
+						err = c.Resolve(old)
+
+						So(err, ShouldBeNil)
+						So(*old, ShouldResemble, *initial)
+					}
+				})
+				Convey("for interfaces.", func() {
+					c := NewContainer()
+					w := "Testing"
+					initial := &builder{work: w}
+					err := c.Register(&Dependency{Value: initial})
+					So(err, ShouldBeNil)
+
+					prev := initial
+					for i := 0; i < 5; i++ {
+						n := new(worker)
+						err = c.ResolveNew(n)
+						nValue := *n
+
+						So(err, ShouldBeNil)
+						So(nValue.Work(), ShouldNotEqual, initial.Work())
+						So(nValue.Work(), ShouldNotEqual, prev.Work())
+						(*n).(*builder).work = "Testing: " + string(i)
+						prev = (*n).(*builder)
+
+						old := new(worker)
+						err = c.Resolve(old)
+						oldValue := *old
+
+						So(err, ShouldBeNil)
+						So(oldValue.Work(), ShouldEqual, initial.Work())
+					}
+				})
+			})
+		})
+
 		Convey("Register", func() {
 			Convey("Should validate the dependency value to be pointer.", func() {
 				c := NewContainer()

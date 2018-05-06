@@ -94,3 +94,7 @@ func isValidValue(t reflect.Type) (isValid bool) {
 	kind := t.Kind()
 	return kind == reflect.Ptr || kind == reflect.Interface
 }
+
+func isPointerTypePointerToInterface(t reflect.Type) bool {
+	return t.Elem().Kind() == reflect.Interface
+}
