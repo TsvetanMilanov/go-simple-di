@@ -23,7 +23,7 @@ import (
 // struct with named and unnamed dependencies.
 type root struct {
     Nested *nested `di:""`
-    Named  *named  `di:"someName"`
+    Named  *named  `di:"name=someName"`
 }
 
 // struct with interface dependency.
