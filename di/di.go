@@ -42,7 +42,7 @@ func (c *Container) Register(deps ...*Dependency) error {
 	return nil
 }
 
-// ResolveAll pupulates the marked dependencies with the registered
+// ResolveAll populates the marked dependencies with the registered
 // dependencies.
 func (c *Container) ResolveAll() error {
 	for _, d := range c.dependencies {
