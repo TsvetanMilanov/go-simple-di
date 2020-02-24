@@ -9,7 +9,7 @@
 
 ## Installation
 ```shell
-dep ensure -add github.com/TsvetanMilanov/go-simple-di/di
+go get github.com/TsvetanMilanov/go-simple-di/di
 ```
 
 ## Quick Start
