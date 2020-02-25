@@ -1,6 +1,7 @@
 # go-simple-di
 [![GoDoc](https://godoc.org/github.com/TsvetanMilanov/go-simple-di/di?status.svg)](https://godoc.org/github.com/TsvetanMilanov/go-simple-di/di)
 [![code-coverage](https://gocover.io/_badge/github.com/TsvetanMilanov/go-simple-di/di)](https://gocover.io/github.com/TsvetanMilanov/go-simple-di/di)
+[![Go Report Card](https://goreportcard.com/badge/github.com/TsvetanMilanov/go-simple-di)](https://goreportcard.com/report/github.com/TsvetanMilanov/go-simple-di)
 ![Go](https://github.com/TsvetanMilanov/go-simple-di/workflows/Go/badge.svg?branch=master)
 ![Create Release](https://github.com/TsvetanMilanov/go-simple-di/workflows/Create%20Release/badge.svg)
 
